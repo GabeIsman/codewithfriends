@@ -17,17 +17,16 @@
       }
       #canvas {
         position: absolute;
-        height: 70%;
-        width: 70%;
-        top: 15%;
-        left: 15%;
+        bottom: 0;
+        right: 0;
+        top: 0;
+        left: 0;
         background-color: #222;
       }
       .square {
         position: absolute;
         width: 50px;
         height: 50px;
-        -webkit-transition: all 400ms linear;
       }
     </style>
   </head>
@@ -49,16 +48,14 @@
 
       canvas.render();
 
-      setInterval(function(){
-        canvas.animate()        
-      }, 500);
+      requestAnimationFrame(_.bind(canvas.animate, canvas));
     }
 
     Canvas = function(el){
       this.el = el;
       this.el.id = "canvas";
 
-      this.numSquares = 30;
+      this.numSquares = 50;
       this.squares = []
     }
 
@@ -66,13 +63,30 @@
       for(var i = 0; i < this.numSquares; i++){
         var square = new Square(this);
         this.squares.push(square);
+        square.render();
       }
     }
 
-    Canvas.prototype.animate = function(){
+    Canvas.prototype.animate = function(timestamp){
       _.each(this.squares, function(s, i){
-        s.animate();
-      });
+        var neighbors = findNeighbors(this.squares, i, 3);
+        var avgVelocity = averageVelocity(neighbors);
+        var center = averagePosition(neighbors);
+        var vectorToCenter = subtractVectors(center, s);
+        var distanceToCenter = distance(center, s);
+        var velocityToCenter = scaleVelocity({
+          xv: vectorToCenter.x,
+          yv: vectorToCenter.y
+        }, repulsionFactor(center, s));
+        if (Math.random() < 0.01) {
+          console.log(vectorToCenter)
+          console.log(repulsionFactor(vectorToCenter, s))
+        }
+        var combinedVector = combineVectors(avgVelocity, velocityToCenter);
+        var perturbedVelocity = perturbVelocity(combinedVector);
+        s.move(perturbedVelocity);
+      }, this);
+      requestAnimationFrame(_.bind(this.animate, this));
     }
 
     Square = function(canvas){
@@ -80,6 +94,10 @@
       this.el           = document.createElement('div');
       this.el.className = "square";
       this.canvas.el.appendChild(this.el);
+      this.x;
+      this.y;
+      this.xv = 0;
+      this.yv = 0;
 
       this.setStyle();
       this.placeRandom();
@@ -87,9 +105,11 @@
     }
 
     Square.prototype.placeRandom = function(){
+      this.x = Math.random() * (this.canvas.el.offsetWidth - this.el.offsetWidth);
+      this.y = Math.random() * (this.canvas.el.offsetHeight - this.el.offsetHeight);
       var position = {
-        left: Math.random() * (this.canvas.el.offsetWidth - this.el.offsetWidth),
-        top: Math.random() * (this.canvas.el.offsetHeight - this.el.offsetHeight)
+        left: this.x,
+        top: this.y
       }
       this.el.setStyle(position);
     }
@@ -114,11 +134,116 @@
       this.el.setStyle(style);
     }
 
-    Square.prototype.animate = function(){
+    Square.prototype.render = function(){
       this.placeRandom();
       this.setStyle({
         opacity: Math.random()
       });
+    }
+
+    Square.prototype.move = function(velocities, timeDelta){
+      var newXv = Math.max(Math.min(velocities.xv, 5), -5);
+      var newYv = Math.max(Math.min(velocities.yv, 5), -5);
+
+      this.xv += newXv * 0.1;
+      this.yv += newYv * 0.1;
+      this.x = (this.x + this.xv);
+      this.y = (this.y + this.yv);
+      if (this.x > this.canvas.el.offsetWidth || this.x < 0) {
+        this.xv = -this.xv;
+      }
+      if (this.y > this.canvas.el.offsetHeight || this.y < 0) {
+        this.yv = -this.yv;
+      }
+      if (this.x > this.canvas.el.offsetWidth + 100) {
+        this.x = this.x - this.canvas.el.offsetWidth - 200;
+      }
+      if (this.y > this.canvas.el.offsetWidth + 100) {
+        this.y = this.y - this.canvas.el.offsetWidth - 200;
+      }
+      if (this.x < -100) {
+        this.x = this.x + this.canvas.el.offsetWidth + 200;
+      }
+      if (this.y < - 100) {
+        this.y = this.y + this.canvas.el.offsetWidth + 200;
+      }
+      if (Math.abs(this.xv) > 10) {
+        this.xv = this.xv * 0.9;
+      }
+      if (Math.abs(this.yv) > 10) {
+        this.yv = this.yv * (0.7 + Math.random() / 4) ;
+      }
+      this.animate();
+    }
+
+    Square.prototype.animate = function() {
+      this.el.setStyle({
+        top: this.y + "px",
+        left: this.x + "px"
+      })
+    }
+
+    var averageVelocity = function(entities){
+      return {
+        xv: _.reduce(entities, function(memo, e) { return (e.xv || 0) + memo}, 0) / entities.length,
+        yv: _.reduce(entities, function(memo, e) { return (e.yv || 0) + memo}, 0) / entities.length,
+      }
+    }
+
+    var averagePosition = function(entities) {
+      return {
+        x: _.reduce(entities, function(memo, e) { return e.x + memo}, 0) / entities.length,
+        y: _.reduce(entities, function(memo, e) { return e.y + memo}, 0) / entities.length,
+      }
+    }
+
+    var perturbVelocity = function(velocities) {
+      velocities.xv += (Math.random() * 10 - 5);
+      velocities.yv += (Math.random() * 10 - 5);
+      return velocities;
+    }
+
+    var combineVectors = function(a, b) {
+      return {
+        xv: (a.xv + b.xv) / 2,
+        yv: (a.yv + b.yv) / 2
+      }
+    }
+
+    var subtractVectors = function(a, b) {
+      return {
+        x: a.x - b.x,
+        y: a.y - b.y
+      }
+    }
+
+    var scaleVelocity = function(a, scalar) {
+      return {
+        xv: a.xv * scalar,
+        yv: a.yv * scalar
+      }
+    }
+
+    var repulsionFactor = function(center, entity) {
+      return Math.min(distance(center, entity) - 100, 1);
+    }
+
+    var findNeighbors = function(entities, index, opt_neighbors) {
+      var numNeighbors = opt_neighbors || 4;
+      var sortedNeighbors = _.sortBy(entities, function(a, b) {
+        return distance(entities[index], entities[1]);
+      });
+      var nearestNeighbors = [];
+      for (var i = 0; nearestNeighbors.length < numNeighbors; i++) {
+        if (entities[index] != sortedNeighbors[i]) {
+          nearestNeighbors.push(sortedNeighbors[i]);
+        }
+      }
+      return nearestNeighbors;
+    };
+
+    var distance = function(a, b) {
+      return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
     }
 
     </script>
