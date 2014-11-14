@@ -15,15 +15,25 @@
         height: 50%;
         width: 100%;
       }
+      #canvas {
+        position: absolute;
+        height: 70%;
+        width: 70%;
+        top: 15%;
+        left: 15%;
+        background-color: #222;
+      }
     </style>
   </head>
   <body>
     <div class="half"></div>
+    <div id="canvas"></div>
 
     <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
     <script type="text/javascript">
     window.onload = function(){
-      var canvas = document.createElement("div")
+      var canvas = new Canvas(document.getElementById('canvas'));
+      canvas.render();
     }
 
     Canvas = function(element){
@@ -32,6 +42,7 @@
     }
 
     Canvas.prototype.render = function(){
+
     }
 
     </script>
