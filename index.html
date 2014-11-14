@@ -23,6 +23,13 @@
         left: 15%;
         background-color: #222;
       }
+      .square {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        opacity: 0;
+        -webkit-transition: all 400ms linear;
+      }
     </style>
   </head>
   <body>
@@ -31,6 +38,12 @@
 
     <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
     <script type="text/javascript">
+    Element.prototype.setStyle = function(css) {
+      _.each(css, _.bind(function(value, key) {
+        this.style[key] = value;
+      }, this));
+    }
+
     window.onload = function(){
       var canvas = new Canvas(document.getElementById('canvas'));
       canvas.render();
@@ -40,22 +53,33 @@
       this.element = element;
       this.element.id = "canvas";
 
-      this.maxSquares = 30;
+      this.numSquares = 30;
       this.squares = []
     }
 
     Canvas.prototype.render = function(){
       for(var i = 0; i < this.numSquares; i++){
-        this.squares.push(new Square(this));
+        var square = new Square(this);
+        this.squares.push(square);
+        square.placeRandom();
       }
     }
 
     Square = function(canvas){
       this.canvas = canvas;
+      this.el;
     }
 
     Square.prototype.placeRandom = function(){
-
+      this.el = document.createElement('div');
+      this.el.className = "square";
+      document.body.appendChild(this.el);
+      this.el.setStyle({
+        opacity: 0.7,
+        top: Math.random() * window.innerHeight,
+        left: Math.random() * window.innerWidth,
+        backgroundColor: "#22b"
+      });
     }
 
     </script>
