@@ -27,7 +27,6 @@
         position: absolute;
         width: 50px;
         height: 50px;
-        opacity: 0;
         -webkit-transition: all 400ms linear;
       }
     </style>
@@ -38,6 +37,7 @@
 
     <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
     <script type="text/javascript">
+
     Element.prototype.setStyle = function(css) {
       _.each(css, _.bind(function(value, key) {
         this.style[key] = value;
@@ -45,13 +45,18 @@
     }
 
     window.onload = function(){
-      var canvas = new Canvas(document.getElementById('canvas'));
+      canvas = new Canvas(document.getElementById('canvas'));
+
       canvas.render();
+
+      setInterval(function(){
+        canvas.animate()        
+      }, 500);
     }
 
-    Canvas = function(element){
-      this.element = element;
-      this.element.id = "canvas";
+    Canvas = function(el){
+      this.el = el;
+      this.el.id = "canvas";
 
       this.numSquares = 30;
       this.squares = []
@@ -61,24 +66,58 @@
       for(var i = 0; i < this.numSquares; i++){
         var square = new Square(this);
         this.squares.push(square);
-        square.placeRandom();
       }
     }
 
+    Canvas.prototype.animate = function(){
+      _.each(this.squares, function(s, i){
+        s.animate();
+      });
+    }
+
     Square = function(canvas){
-      this.canvas = canvas;
-      this.el;
+      this.canvas       = canvas;
+      this.el           = document.createElement('div');
+      this.el.className = "square";
+      this.canvas.el.appendChild(this.el);
+
+      this.setStyle();
+      this.placeRandom();
+      this.animate();
     }
 
     Square.prototype.placeRandom = function(){
-      this.el = document.createElement('div');
-      this.el.className = "square";
-      document.body.appendChild(this.el);
-      this.el.setStyle({
-        opacity: 0.7,
-        top: Math.random() * window.innerHeight,
-        left: Math.random() * window.innerWidth,
-        backgroundColor: "#22b"
+      var position = {
+        left: Math.random() * (this.canvas.el.offsetWidth - this.el.offsetWidth),
+        top: Math.random() * (this.canvas.el.offsetHeight - this.el.offsetHeight)
+      }
+      this.el.setStyle(position);
+    }
+
+    Square.prototype.randomColor = function(){
+      var r = parseInt(Math.random() * 255);
+      var g = parseInt(Math.random() * 255);
+      var b = parseInt(Math.random() * 255);
+
+      return {
+        backgroundColor: "rgb("+[r,g,b].join(",")+")"
+      };
+    }
+
+    Square.prototype.setStyle = function(){
+      var baseStyle = {
+        position: "absolute"
+      }
+
+      var style = _.extend(baseStyle, this.randomColor());
+
+      this.el.setStyle(style);
+    }
+
+    Square.prototype.animate = function(){
+      this.placeRandom();
+      this.setStyle({
+        opacity: Math.random()
       });
     }
 
