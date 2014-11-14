@@ -39,9 +39,22 @@
     Canvas = function(element){
       this.element = element;
       this.element.id = "canvas";
+
+      this.maxSquares = 30;
+      this.squares = []
     }
 
     Canvas.prototype.render = function(){
+      for(var i = 0; i < this.numSquares; i++){
+        this.squares.push(new Square(this));
+      }
+    }
+
+    Square = function(canvas){
+      this.canvas = canvas;
+    }
+
+    Square.prototype.placeRandom = function(){
 
     }
 
