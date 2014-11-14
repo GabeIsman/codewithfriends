@@ -69,19 +69,15 @@
 
     Canvas.prototype.animate = function(timestamp){
       _.each(this.squares, function(s, i){
-        var neighbors = findNeighbors(this.squares, i, 3);
-        var avgVelocity = averageVelocity(neighbors);
-        var center = averagePosition(neighbors);
+        var relatives = findRelatives(this.squares, i, 4);
+        var avgVelocity = averageVelocity(relatives);
+        var center = averagePosition(relatives);
         var vectorToCenter = subtractVectors(center, s);
         var distanceToCenter = distance(center, s);
         var velocityToCenter = scaleVelocity({
           xv: vectorToCenter.x,
           yv: vectorToCenter.y
         }, repulsionFactor(center, s));
-        if (Math.random() < 0.01) {
-          console.log(vectorToCenter)
-          console.log(repulsionFactor(vectorToCenter, s))
-        }
         var combinedVector = combineVectors(avgVelocity, velocityToCenter);
         var perturbedVelocity = perturbVelocity(combinedVector);
         s.move(perturbedVelocity);
@@ -115,12 +111,10 @@
     }
 
     Square.prototype.randomColor = function(){
-      var r = parseInt(Math.random() * 255);
-      var g = parseInt(Math.random() * 255);
-      var b = parseInt(Math.random() * 255);
-
       return {
-        backgroundColor: "rgb("+[r,g,b].join(",")+")"
+        r: Math.floor(Math.random() * 255),
+        g: Math.floor(Math.random() * 255),
+        b: Math.floor(Math.random() * 255)
       };
     }
 
@@ -129,16 +123,17 @@
         position: "absolute"
       }
 
-      var style = _.extend(baseStyle, this.randomColor());
+      this.color = this.randomColor();
+      var style = _.extend(baseStyle, {
+        backgroundColor: "rgb(" + [this.color.r, this.color.g, this.color.b].join(',')  + ")"
+      });
 
       this.el.setStyle(style);
     }
 
     Square.prototype.render = function(){
       this.placeRandom();
-      this.setStyle({
-        opacity: Math.random()
-      });
+      this.setStyle();
     }
 
     Square.prototype.move = function(velocities, timeDelta){
@@ -168,10 +163,10 @@
         this.y = this.y + this.canvas.el.offsetWidth + 200;
       }
       if (Math.abs(this.xv) > 10) {
-        this.xv = this.xv * 0.9;
+        this.xv = this.xv * 0.96;
       }
       if (Math.abs(this.yv) > 10) {
-        this.yv = this.yv * (0.7 + Math.random() / 4) ;
+        this.yv = this.yv * 0.96 ;
       }
       this.animate();
     }
@@ -225,7 +220,7 @@
     }
 
     var repulsionFactor = function(center, entity) {
-      return Math.min(distance(center, entity) - 100, 1);
+      return Math.min(distance(center, entity) - 120, 1);
     }
 
     var findNeighbors = function(entities, index, opt_neighbors) {
@@ -242,8 +237,27 @@
       return nearestNeighbors;
     };
 
+    var findRelatives = function(entities, index, opt_neighbors) {
+      var numRelatives = opt_neighbors || 4;
+      var sortedRelatives = _.sortBy(entities, function(a, b) {
+        return colorDistance(entities[index].color, entities[1].color);
+      });
+      var nearestRelatives = [];
+      for (var i = 0; nearestRelatives.length < numRelatives; i++) {
+        if (entities[index] != sortedRelatives[i]) {
+          nearestRelatives.push(sortedRelatives[i]);
+        }
+      }
+      debugger
+      return nearestRelatives;
+    };
+
     var distance = function(a, b) {
       return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+    }
+
+    var colorDistance = function(a, b) {
+      Math.sqrt(Math.pow(a.r - b.r, 2) + Math.pow(a.g - b.g, 2) + Math.pow(a.b - b.b, 2))
     }
 
     </script>
